@@ -1,120 +1,87 @@
 package com.ticketsystem;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.List;
+import java.util.concurrent.*;
 import java.util.ArrayList;
+import java.util.List;
 
 public class TicketPool {
-    private final int totalCount;
-    private int currentCount;
-    private final Queue<Ticket> tickets = new LinkedList<>();
-    private int currentId = 1;
-    private volatile boolean showMessages = true;
-    private final List<String> activityLogs = new ArrayList<>();
+    private final ConcurrentLinkedQueue<Ticket> tickets;
+    private final TicketAnalytics analytics;
+    private final TicketPersistence persistence;
+    private int maxCapacity;
+    private boolean showMessages;
+    private final List<String> transactionHistory;
     private int ticketsSold;
 
-    public TicketPool(int totalCount) {
-        this.totalCount = totalCount;
-        this.currentCount = 0;
+    public TicketPool() {
+        this.tickets = new ConcurrentLinkedQueue<>();
+        this.analytics = new TicketAnalytics(5); // Update every 5 seconds
+        this.persistence = new TicketPersistence();
+        this.maxCapacity = 100; // Default capacity
+        this.showMessages = true;
+        this.transactionHistory = new ArrayList<>();
         this.ticketsSold = 0;
     }
 
-    public void setShowMessages(boolean showMessages) {
-        this.showMessages = showMessages;
+    public void setMaxCapacity(int capacity) {
+        this.maxCapacity = capacity;
     }
 
-    public List<String> getActivityLogs() {
-        return new ArrayList<>(activityLogs);
+    public void setShowMessages(boolean show) {
+        this.showMessages = show;
     }
 
-    public synchronized void addTicket(Ticket ticket, String vendorName) {
-        try {
-            while (currentCount >= totalCount) {
-                wait();
-            }
+    public synchronized void addTicket(Ticket ticket) {
+        if (tickets.size() < maxCapacity) {
             tickets.offer(ticket);
-            currentCount++;
-
+            analytics.recordVendorActivity("Vendor", 1);
             if (showMessages) {
-                System.out.println("Ticket added: " + ticket.getEventName() + " | Current Count: " + currentCount);
-                System.out.println("Vendor: " + vendorName + " added ticket ID: " + ticket.getId());
+                System.out.println("Ticket added: " + ticket);
             }
-
-            activityLogs.add("Ticket added: " + ticket.getEventName() + " | Current Count: " + currentCount);
-            activityLogs.add("Vendor: " + vendorName + " added ticket ID: " + ticket.getId());
-
-        } catch (InterruptedException e) {
-            System.out.println("Error: The ticket addition process was interrupted.");
+            transactionHistory.add("Added ticket: " + ticket);
         }
     }
 
-    public synchronized Ticket purchaseTicket(String customerName) {
-        Ticket ticket = null;
-        try {
-            while (currentCount == 0) {
-                wait();
-            }
-            ticket = tickets.poll();
+    public synchronized Ticket removeTicket(String customerName) {
+        Ticket ticket = tickets.poll();
+        if (ticket != null) {
             ticketsSold++;
-
-            if (showMessages && ticket != null) {
-                System.out.println("Ticket purchased: " + ticket.getEventName() + " | Current Count: " + currentCount);
-                System.out.println("Customer: " + customerName + " purchased ticket ID: " + ticket.getId());
+            analytics.recordCustomerPurchase(customerName);
+            if (showMessages) {
+                System.out.println("Ticket removed by " + customerName + ": " + ticket);
             }
-
-            if (ticket != null) {
-                activityLogs.add("Ticket purchased: " + ticket.getEventName() + " | Current Count: " + currentCount);
-                activityLogs.add("Customer: " + customerName + " purchased ticket ID: " + ticket.getId());
-            }
-        } catch (InterruptedException e) {
-            System.out.println("Error: The ticket purchasing process was interrupted.");
+            transactionHistory.add("Removed ticket by " + customerName + ": " + ticket);
         }
         return ticket;
     }
 
-    public synchronized int getCurrentCount() {
-        return currentCount;
-    }
-
     public int getTotalCount() {
-        return totalCount;
+        return tickets.size();
     }
 
     public int getTicketsSold() {
         return ticketsSold;
     }
 
-    public synchronized Ticket getFirstTicket() {
-        return tickets.peek();
-    }
-
-    public void createTicket(int count, String eventName, int price) {
-        try {
-            for (int i = 0; i < count; i++) {
-                Ticket ticket = new Ticket(currentId++, eventName, price);
-                currentCount++;
-                tickets.add(ticket);
-            }
-        } catch (Exception e) {
-            System.out.println("Error: Failed to create tickets due to an unknown error.");
-        }
+    public List<String> getTransactionHistory() {
+        return new ArrayList<>(transactionHistory);
     }
 
     public void saveTickets() {
-        String fileName = "tickets.txt";
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
-            for (Ticket ticket : tickets) {
-                String ticketData = ticket.getId() + "," + ticket.getEventName() + "," + ticket.getPrice();
-                writer.write(ticketData);
-                writer.newLine();
-            }
-        } catch (IOException e) {
-            System.out.println("Error: An error occurred while writing to the file.");
-            e.printStackTrace();
-        }
+        persistence.saveTickets(new ArrayList<>(tickets));
+    }
+
+    public void loadTickets() {
+        List<Ticket> loadedTickets = persistence.loadTickets();
+        tickets.clear();
+        tickets.addAll(loadedTickets);
+    }
+
+    public TicketAnalytics getAnalytics() {
+        return analytics;
+    }
+
+    public void shutdown() {
+        saveTickets();
     }
 } 

@@ -1,4 +1,4 @@
-package main.java.com.ticketing;
+package com.ticketing;
 
 import javafx.application.Application;
 import javafx.application.Platform;

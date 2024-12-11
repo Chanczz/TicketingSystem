@@ -1,4 +1,4 @@
-package main.java.com.ticketing;
+package com.ticketing;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.ticketing;
+package main.java.com.ticketing;
 
 public class Customer implements Runnable {
     private final TicketPool ticketPool;

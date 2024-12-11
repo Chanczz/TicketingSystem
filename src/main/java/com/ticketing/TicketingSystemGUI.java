@@ -208,9 +208,10 @@ public class TicketingSystemGUI extends Application {
         if (ticketingSystem != null) {
             Platform.runLater(() -> {
                 // Update available tickets
+                TicketPool pool = ticketingSystem.getTicketPool();
                 availableTicketsLabel.setText("Available Tickets: " + 
-                    ticketingSystem.getAvailableTickets() + "/" + 
-                    ticketingSystem.getMaxCapacity());
+                    pool.getAvailableTickets() + "/" + 
+                    pool.getMaxTicketCapacity());
 
                 // Update customer statistics
                 customerStatsBox.getChildren().clear();

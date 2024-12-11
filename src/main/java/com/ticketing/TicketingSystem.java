@@ -82,11 +82,6 @@ public class TicketingSystem {
         for (Thread customerThread : customerThreads) {
             customerThread.start();
         }
-
-        // Start monitoring thread for CLI
-        if (!isGUI()) {
-            new Thread(this::monitorSystem).start();
-        }
     }
 
     public void stop() {
@@ -98,10 +93,12 @@ public class TicketingSystem {
         isRunning = false;
         System.out.println("\nStopping the Ticketing System...");
 
-        // Stop all vendors and customers
+        // Stop all vendors
         for (Vendor vendor : vendors) {
             vendor.stop();
         }
+
+        // Stop all customers
         for (Customer customer : customers) {
             customer.stop();
         }
@@ -115,90 +112,37 @@ public class TicketingSystem {
                 thread.join();
             }
         } catch (InterruptedException e) {
-            System.out.println("Shutdown interrupted");
             Thread.currentThread().interrupt();
+            System.out.println("Interrupted while stopping threads");
         }
 
-        // Print final statistics
-        printStatistics();
+        System.out.println("System stopped successfully!");
     }
 
-    private void monitorSystem() {
-        while (isRunning) {
-            try {
-                Thread.sleep(5000); // Update every 5 seconds
-                printStatistics();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-    }
-
-    private void printStatistics() {
-        System.out.println("\n=== System Statistics ===");
-        System.out.println("Available Tickets: " + ticketPool.getAvailableTickets());
-        System.out.println("Maximum Capacity: " + ticketPool.getMaxTicketCapacity());
-        
-        System.out.println("\nCustomer Statistics:");
-        for (Customer customer : customers) {
-            System.out.println(customer.getCustomerId() + " purchased: " + customer.getTicketsPurchased() + " tickets");
-        }
-        System.out.println("=====================\n");
-    }
-
-    public int getAvailableTickets() {
-        return ticketPool.getAvailableTickets();
-    }
-
-    public int getMaxCapacity() {
-        return ticketPool.getMaxTicketCapacity();
+    public TicketPool getTicketPool() {
+        return ticketPool;
     }
 
     public List<Customer> getCustomers() {
         return customers;
     }
 
-    private boolean isGUI() {
-        return Thread.currentThread().getStackTrace()[3].getClassName().contains("GUI");
+    public boolean isRunning() {
+        return isRunning;
     }
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        
-        System.out.print("Enter maximum ticket capacity: ");
-        int maxCapacity = scanner.nextInt();
-        
-        TicketingSystem system = new TicketingSystem(maxCapacity);
+        TicketingSystem system = new TicketingSystem(100);
         system.initialize();
-        
-        boolean running = true;
+        system.start();
 
-        while (running) {
-            System.out.println("\nAvailable commands:");
-            System.out.println("1. Start system");
-            System.out.println("2. Stop system");
-            System.out.println("3. Exit");
-            System.out.print("Enter command (1-3): ");
-
-            int command = scanner.nextInt();
-            switch (command) {
-                case 1:
-                    system.start();
-                    break;
-                case 2:
-                    system.stop();
-                    break;
-                case 3:
-                    system.stop();
-                    running = false;
-                    break;
-                default:
-                    System.out.println("Invalid command!");
-            }
+        // Run for a while
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
 
-        System.out.println("Thank you for using the Real-Time Event Ticketing System!");
-        scanner.close();
+        system.stop();
     }
 } 

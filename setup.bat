@@ -18,16 +18,17 @@ if errorlevel 1 (
     echo Don't trip tho, your boy Pahan's bout to bless you with that download fr fr...
     echo.
     
-    REM Download AdoptOpenJDK 17
+    REM Download AdoptOpenJDK 17 for Windows x64
     powershell -Command "& {Invoke-WebRequest -Uri 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%%2B9/OpenJDK17U-jdk_x64_windows_hotspot_17.0.9_9.msi' -OutFile '%TOOLS_DIR%\java17.msi'}"
     
     echo On god we finna install Java 17 rn no cap!
     msiexec /i "%TOOLS_DIR%\java17.msi" /quiet
     
-    REM Set JAVA_HOME
+    REM Set JAVA_HOME and update PATH
     for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\JavaSoft\JDK\17" /v JavaHome 2^>nul') do set "JAVA_HOME=%%b"
     setx JAVA_HOME "%JAVA_HOME%" /M
-    setx PATH "%PATH%;%JAVA_HOME%\bin" /M
+    set "PATH=%PATH%;%JAVA_HOME%\bin"
+    setx PATH "%PATH%" /M
     
     echo YURRR Java 17 installed bussin fr fr!
     echo.
@@ -43,7 +44,7 @@ if errorlevel 1 (
     echo Dw tho, Pahan's got the sauce incoming...
     echo.
     
-    REM Download Maven
+    REM Download Maven for Windows x64
     powershell -Command "& {Invoke-WebRequest -Uri 'https://dlcdn.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.zip' -OutFile '%TOOLS_DIR%\maven.zip'}"
     
     echo Bussin out that Maven real quick...
@@ -52,10 +53,20 @@ if errorlevel 1 (
     REM Set MAVEN_HOME and update PATH
     set "MAVEN_HOME=%TOOLS_DIR%\apache-maven-3.9.5"
     setx MAVEN_HOME "%MAVEN_HOME%" /M
-    setx PATH "%PATH%;%MAVEN_HOME%\bin" /M
+    set "PATH=%PATH%;%MAVEN_HOME%\bin"
+    setx PATH "%PATH%" /M
     
     echo No cap Maven installed and it's straight bussin!
     echo.
+    
+    REM Verify Maven installation
+    call mvn -v
+    if errorlevel 1 (
+        echo Yo something ain't right with Maven fr fr!
+        echo Try running this script again as administrator!
+        pause
+        exit /b 1
+    )
 ) else (
     echo Maven already vibin in the system fr fr!
     echo.

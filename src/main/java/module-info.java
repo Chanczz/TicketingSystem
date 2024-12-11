@@ -1,7 +1,7 @@
-module com.ticketing {
+module main.java.com.ticketing {
     requires javafx.controls;
     requires javafx.graphics;
     requires java.sql;
     
-    exports com.ticketing;
+    exports main.java.com.ticketing;
 } 
